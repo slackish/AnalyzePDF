@@ -4,7 +4,7 @@ Analyzes PDF files by looking at their characteristics in order to add some
 intelligence into the determination of them being malicious or benign.
 
 Usage:
-$ AnalyzePDF.py [-h] [-m MOVE] [-y YARARULES] Path
+$ apdf.py [-h] [-m MOVE] [-y YARARULES] Path
 
 Produces a high level overview of a PDF to quickly determine if further
 analysis is needed based on it's characteristics
@@ -19,10 +19,10 @@ optional arguments:
                         Path to YARA rules. Rules should contain a weighted
                         score in the metadata section. (i.e. weight = 3)
 
-example: python AnalyzePDF.py -m tmp/badness -y foo/pdf.yara bar/getsome.pdf
+example: python apdf.py -m tmp/badness -y foo/pdf.yara bar/getsome.pdf
 """
 
-# AnalyzePDF.py was created by Glenn P. Edwards Jr.
+# apdf.py was created by Glenn P. Edwards Jr.
 #         http://hiddenillusion.blogspot.com
 #                 @hiddenillusion
 # Version 0.2 
@@ -91,42 +91,6 @@ ydir = False
 trailer = ("=" * 35)
 filler = ("-" * 35)
 
-
-parser = argparse.ArgumentParser(description='Produces a high level overview of"
-            "a PDF to quickly determine if further analysis is needed based on "
-            "it\'s characteristics')
-parser.add_argument('-m','--move', help='Directory to move files triggering "
-            "YARA hits to', required=False)
-parser.add_argument('-y','--yararules', help='Path to YARA rules.  Rules should"
-            " contain a weighted score in the metadata section. "
-            "(i.e. weight = 3)', required=False)
-parser.add_argument('Path', help='Path to directory/file(s) to be scanned')
-args = vars(parser.parse_args())
-
-
-
-# Verify supplied path exists or die
-if not os.path.exists(args['Path']):
-    print "[!] The supplied path does not exist"
-    sys.exit()
-        
-# Configure YARA rules
-if args['yararules']:
-    rules = args['yararules']
-else:
-    rules = '/usr/local/etc/capabilities.yara' # REMnux location
-    
-if not os.path.exists(rules):
-    print "[!] Correct path to YARA rules?"
-    sys.exit()
-else:
-    try:    
-        r = yara.compile(rules)
-        if args['move']:
-            ydir = args['move']
-    except Exception, msg:
-        print "[!] YARA compile error: %s" % msg
-        sys.exit()
 
 def main():
     # Set the path to file(s)
@@ -429,4 +393,39 @@ def eval(counter):
     del yscore[:]
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Produces a high level overview'\
+                ' of a PDF to quickly determine if further analysis is needed based '\
+                'on it\'s characteristics')
+    parser.add_argument('-m','--move', help='Directory to move files triggering '\
+                'YARA hits to', required=False)
+    parser.add_argument('-y','--yararules', help='Path to YARA rules.  Rules '\
+                'should contain a weighted score in the metadata section. '\
+                '(i.e. weight = 3)', 
+                required=False,
+                default="pdf_rules.yara")
+    parser.add_argument('Path', help='Path to directory/file(s) to be scanned')
+    args = vars(parser.parse_args())
+    
+    # Verify supplied path exists or die
+    if not os.path.exists(args['Path']):
+        parser.error("The supplied path does not exist")
+            
+    # Configure YARA rules
+    if args['yararules']:
+        rules = args['yararules']
+    else:
+        rules = '/usr/local/etc/capabilities.yara' # REMnux location
+        
+    if not os.path.exists(rules):
+        parser.error("Correct path to YARA rules?")
+        sys.exit()
+    else:
+        try:    
+            r = yara.compile(rules)
+            if args['move']:
+                ydir = args['move']
+        except Exception, msg:
+            print "[!] YARA compile error: %s" % msg
+            sys.exit()
+
     main()  
